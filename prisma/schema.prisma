@@ -1,0 +1,482 @@
+// Orange Backend - Prisma Schema
+// Social Media & Live Streaming Platform
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Admin Users
+model AdminUser {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String
+  userType  String   @default("admin") @map("user_type")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("admin_users")
+}
+
+// Application Data/Settings
+model AppData {
+  id            Int      @id @default(autoincrement())
+  appName       String   @default("Orange App") @map("app_name")
+  appVersion    String   @default("1.0.0") @map("app_version")
+  privacyPolicy String?  @map("privacy_policy")
+  termsOfUse    String?  @map("terms_of_use")
+  supportEmail  String?  @map("support_email")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("app_data")
+}
+
+// Users (Main user table)
+model User {
+  id              String    @id @default(cuid())
+  firebaseUid     String?   @unique @map("firebase_uid")
+  email           String?   @unique
+  username        String?   @unique
+  fullName        String?   @map("full_name")
+  profileImage    String?   @map("profile_image")
+  coverImage      String?   @map("cover_image")
+  bio             String?
+  age             Int?
+  gender          String?
+  location        String?
+  isBlocked       Boolean   @default(false) @map("is_blocked")
+  canGoLive       Boolean   @default(false) @map("can_go_live")
+  isVerified      Boolean   @default(false) @map("is_verified")
+  diamonds        Int       @default(0)
+  coins           Int       @default(0)
+  lastActive      DateTime? @map("last_active")
+  isOnline        Boolean   @default(false) @map("is_online")
+  deviceToken     String?   @map("device_token")
+  loginType       String?   @map("login_type") // guest, email, google, facebook
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  posts              Post[]
+  stories            Story[]
+  comments           Comment[]
+  likes              Like[]
+  followers          Follow[]           @relation("UserFollowers")
+  following          Follow[]           @relation("UserFollowing")
+  sentMessages       Message[]          @relation("MessageSender")
+  receivedMessages   Message[]          @relation("MessageReceiver")
+  liveApplications   LiveApplication[]
+  liveHistory        LiveHistory[]
+  reports            Report[]           @relation("ReportedUser")
+  reportsMade        Report[]           @relation("ReporterUser")
+  redeemRequests     RedeemRequest[]
+  verifyRequests     VerifyRequest[]
+  giftsSent          Gift[]             @relation("GiftSender")
+  giftsReceived      Gift[]             @relation("GiftReceiver")
+  userInterests      UserInterest[]
+  notifications      Notification[]
+  blockedUsers       BlockedUser[]      @relation("BlockerUser")
+  blockedByUsers     BlockedUser[]      @relation("BlockedUser")
+  liveRooms          LiveRoom[]
+
+  @@map("users")
+}
+
+// Interests
+model Interest {
+  id            Int            @id @default(autoincrement())
+  name          String
+  image         String?
+  status        Boolean        @default(true)
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  userInterests UserInterest[]
+
+  @@map("interests")
+}
+
+// User Interests (Many-to-Many)
+model UserInterest {
+  id         Int      @id @default(autoincrement())
+  userId     String   @map("user_id")
+  interestId Int      @map("interest_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  interest Interest @relation(fields: [interestId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, interestId])
+  @@map("user_interests")
+}
+
+// Posts
+model Post {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  content   String?
+  image     String?
+  video     String?
+  likes     Int       @default(0)
+  comments  Int       @default(0)
+  status    Boolean   @default(true)
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postLikes    Like[]
+  postComments Comment[]
+  reports      Report[]
+
+  @@map("posts")
+}
+
+// Stories
+model Story {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  image     String?
+  video     String?
+  expiresAt DateTime @map("expires_at")
+  views     Int      @default(0)
+  status    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("stories")
+}
+
+// Comments
+model Comment {
+  id        String   @id @default(cuid())
+  postId    String   @map("post_id")
+  userId    String   @map("user_id")
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("comments")
+}
+
+// Likes
+model Like {
+  id        String   @id @default(cuid())
+  postId    String   @map("post_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@map("likes")
+}
+
+// Follow System
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String   @map("follower_id")
+  followingId String   @map("following_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  follower  User @relation("UserFollowers", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("UserFollowing", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@map("follows")
+}
+
+// Messages (Chat System)
+model Message {
+  id         String      @id @default(cuid())
+  senderId   String      @map("sender_id")
+  receiverId String      @map("receiver_id")
+  content    String?
+  image      String?
+  video      String?
+  messageType String     @default("text") @map("message_type") // text, image, video, gift
+  isRead     Boolean     @default(false) @map("is_read")
+  createdAt  DateTime    @default(now()) @map("created_at")
+  updatedAt  DateTime    @updatedAt @map("updated_at")
+
+  sender   User @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User @relation("MessageReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@map("messages")
+}
+
+// Live Applications
+model LiveApplication {
+  id              String    @id @default(cuid())
+  userId          String    @map("user_id")
+  status          String    @default("pending") // pending, approved, rejected
+  applicationDate DateTime  @default(now()) @map("application_date")
+  approvedDate    DateTime? @map("approved_date")
+  rejectedDate    DateTime? @map("rejected_date")
+  reason          String?
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("live_applications")
+}
+
+// Live History
+model LiveHistory {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  title     String?
+  startTime DateTime? @map("start_time")
+  endTime   DateTime? @map("end_time")
+  duration  Int?      // in seconds
+  viewers   Int       @default(0)
+  earnings  Float     @default(0)
+  status    String    @default("ended") // live, ended
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("live_history")
+}
+
+// Reports
+model Report {
+  id             String   @id @default(cuid())
+  reporterId     String   @map("reporter_id")
+  reportedUserId String?  @map("reported_user_id")
+  postId         String?  @map("post_id")
+  reason         String
+  description    String?
+  status         String   @default("pending") // pending, reviewed, resolved
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  reporter     User  @relation("ReporterUser", fields: [reporterId], references: [id], onDelete: Cascade)
+  reportedUser User? @relation("ReportedUser", fields: [reportedUserId], references: [id], onDelete: Cascade)
+  post         Post? @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@map("reports")
+}
+
+// Redeem Requests
+model RedeemRequest {
+  id             String    @id @default(cuid())
+  userId         String    @map("user_id")
+  amount         Float
+  paymentMethod  String    @map("payment_method")
+  paymentDetails String?   @map("payment_details")
+  status         String    @default("pending") // pending, approved, rejected, completed
+  requestedAt    DateTime  @default(now()) @map("requested_at")
+  completedAt    DateTime? @map("completed_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("redeem_requests")
+}
+
+// Verification Requests
+model VerifyRequest {
+  id            String    @id @default(cuid())
+  userId        String    @map("user_id")
+  documentType  String    @map("document_type")
+  documentImage String    @map("document_image")
+  status        String    @default("pending") // pending, approved, rejected
+  requestedAt   DateTime  @default(now()) @map("requested_at")
+  processedAt   DateTime? @map("processed_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("verify_requests")
+}
+
+// Diamond Packs
+model DiamondPack {
+  id        Int      @id @default(autoincrement())
+  name      String
+  diamonds  Int
+  price     Float
+  currency  String   @default("USD")
+  status    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("diamond_packs")
+}
+
+// Gifts
+model Gift {
+  id         String   @id @default(cuid())
+  senderId   String   @map("sender_id")
+  receiverId String   @map("receiver_id")
+  giftType   String   @map("gift_type")
+  giftName   String   @map("gift_name")
+  giftImage  String?  @map("gift_image")
+  price      Int      // in diamonds
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  sender   User @relation("GiftSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User @relation("GiftReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@map("gifts")
+}
+
+// Gift Types
+model GiftType {
+  id        Int      @id @default(autoincrement())
+  name      String
+  image     String?
+  price     Int      // in diamonds
+  status    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("gift_types")
+}
+
+// Notifications
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  title     String
+  message   String
+  type      String   // like, comment, follow, gift, live, etc.
+  data      String?  // JSON data for additional info
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+// Blocked Users
+model BlockedUser {
+  id        String   @id @default(cuid())
+  blockerId String   @map("blocker_id")
+  blockedId String   @map("blocked_id")
+  reason    String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  blocker User @relation("BlockerUser", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("BlockedUser", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@map("blocked_users")
+}
+
+// App Settings
+model AppSetting {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  value     String
+  type      String   @default("string") // string, number, boolean, json
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("app_settings")
+}
+
+// Push Notifications Log
+model PushNotification {
+  id        String   @id @default(cuid())
+  userId    String?  @map("user_id")
+  title     String
+  message   String
+  data      String?  // JSON data
+  status    String   @default("sent") // sent, failed, pending
+  sentAt    DateTime @default(now()) @map("sent_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("push_notifications")
+}
+
+// Live Streaming Rooms
+model LiveRoom {
+  id          String    @id @default(cuid())
+  userId      String    @map("user_id")
+  title       String
+  description String?
+  thumbnail   String?
+  isActive    Boolean   @default(false) @map("is_active")
+  viewers     Int       @default(0)
+  maxViewers  Int       @default(0) @map("max_viewers")
+  startedAt   DateTime? @map("started_at")
+  endedAt     DateTime? @map("ended_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("live_rooms")
+}
+
+// Agora Tokens (for voice/video calls)
+model AgoraToken {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  channel   String
+  token     String
+  expiresAt DateTime @map("expires_at")
+  type      String   // rtc, rtm
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("agora_tokens")
+}
+
+// Call History
+model CallHistory {
+  id         String    @id @default(cuid())
+  callerId   String    @map("caller_id")
+  receiverId String    @map("receiver_id")
+  type       String    // voice, video
+  status     String    // completed, missed, rejected, failed
+  duration   Int?      // in seconds
+  startedAt  DateTime? @map("started_at")
+  endedAt    DateTime? @map("ended_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  @@map("call_history")
+}
+
+// User Sessions (for tracking active sessions)
+model UserSession {
+  id           String    @id @default(cuid())
+  userId       String    @map("user_id")
+  deviceId     String?   @map("device_id")
+  deviceType   String?   @map("device_type") // ios, android, web
+  deviceToken  String?   @map("device_token")
+  isActive     Boolean   @default(true) @map("is_active")
+  lastActivity DateTime  @default(now()) @map("last_activity")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  @@map("user_sessions")
+}
+
+// Analytics Events
+model AnalyticsEvent {
+  id         String   @id @default(cuid())
+  userId     String?  @map("user_id")
+  event      String
+  properties String?  // JSON data
+  timestamp  DateTime @default(now())
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("analytics_events")
+}
