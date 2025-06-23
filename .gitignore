@@ -75,8 +75,8 @@ Thumbs.db
 prisma/migrations/
 
 # Uploads (if storing locally)
-uploads/
-public/uploads/
+# uploads/
+# public/uploads/
 
 # SSL certificates
 *.pem
