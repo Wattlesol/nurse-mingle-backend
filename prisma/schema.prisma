@@ -38,51 +38,52 @@ model AppData {
 
 // Users (Main user table)
 model User {
-  id              String    @id @default(cuid())
-  firebaseUid     String?   @unique @map("firebase_uid")
-  email           String?   @unique
-  username        String?   @unique
-  fullName        String?   @map("full_name")
-  profileImage    String?   @map("profile_image")
-  coverImage      String?   @map("cover_image")
-  bio             String?
-  age             Int?
-  gender          String?
-  location        String?
-  isBlocked       Boolean   @default(false) @map("is_blocked")
-  canGoLive       Boolean   @default(false) @map("can_go_live")
-  isVerified      Boolean   @default(false) @map("is_verified")
-  diamonds        Int       @default(0)
-  coins           Int       @default(0)
-  lastActive      DateTime? @map("last_active")
-  isOnline        Boolean   @default(false) @map("is_online")
-  deviceToken     String?   @map("device_token")
-  loginType       String?   @map("login_type") // guest, email, google, facebook
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  id           String    @id @default(cuid())
+  firebaseUid  String?   @unique @map("firebase_uid")
+  email        String?   @unique
+  password     String? // For email authentication
+  username     String?   @unique
+  fullName     String?   @map("full_name")
+  profileImage String?   @map("profile_image")
+  coverImage   String?   @map("cover_image")
+  bio          String?
+  age          Int?
+  gender       String?
+  location     String?
+  isBlocked    Boolean   @default(false) @map("is_blocked")
+  canGoLive    Boolean   @default(false) @map("can_go_live")
+  isVerified   Boolean   @default(false) @map("is_verified")
+  diamonds     Int       @default(0)
+  coins        Int       @default(0)
+  lastActive   DateTime? @map("last_active")
+  isOnline     Boolean   @default(false) @map("is_online")
+  deviceToken  String?   @map("device_token")
+  loginType    String?   @map("login_type") // guest, email, google, facebook
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  posts              Post[]
-  stories            Story[]
-  comments           Comment[]
-  likes              Like[]
-  followers          Follow[]           @relation("UserFollowers")
-  following          Follow[]           @relation("UserFollowing")
-  sentMessages       Message[]          @relation("MessageSender")
-  receivedMessages   Message[]          @relation("MessageReceiver")
-  liveApplications   LiveApplication[]
-  liveHistory        LiveHistory[]
-  reports            Report[]           @relation("ReportedUser")
-  reportsMade        Report[]           @relation("ReporterUser")
-  redeemRequests     RedeemRequest[]
-  verifyRequests     VerifyRequest[]
-  giftsSent          Gift[]             @relation("GiftSender")
-  giftsReceived      Gift[]             @relation("GiftReceiver")
-  userInterests      UserInterest[]
-  notifications      Notification[]
-  blockedUsers       BlockedUser[]      @relation("BlockerUser")
-  blockedByUsers     BlockedUser[]      @relation("BlockedUser")
-  liveRooms          LiveRoom[]
+  posts            Post[]
+  stories          Story[]
+  comments         Comment[]
+  likes            Like[]
+  followers        Follow[]          @relation("UserFollowers")
+  following        Follow[]          @relation("UserFollowing")
+  sentMessages     Message[]         @relation("MessageSender")
+  receivedMessages Message[]         @relation("MessageReceiver")
+  liveApplications LiveApplication[]
+  liveHistory      LiveHistory[]
+  reports          Report[]          @relation("ReportedUser")
+  reportsMade      Report[]          @relation("ReporterUser")
+  redeemRequests   RedeemRequest[]
+  verifyRequests   VerifyRequest[]
+  giftsSent        Gift[]            @relation("GiftSender")
+  giftsReceived    Gift[]            @relation("GiftReceiver")
+  userInterests    UserInterest[]
+  notifications    Notification[]
+  blockedUsers     BlockedUser[]     @relation("BlockerUser")
+  blockedByUsers   BlockedUser[]     @relation("BlockedUser")
+  liveRooms        LiveRoom[]
 
   @@map("users")
 }
@@ -116,16 +117,16 @@ model UserInterest {
 
 // Posts
 model Post {
-  id        String    @id @default(cuid())
-  userId    String    @map("user_id")
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
   content   String?
   image     String?
   video     String?
-  likes     Int       @default(0)
-  comments  Int       @default(0)
-  status    Boolean   @default(true)
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
+  likes     Int      @default(0)
+  comments  Int      @default(0)
+  status    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   postLikes    Like[]
@@ -197,16 +198,16 @@ model Follow {
 
 // Messages (Chat System)
 model Message {
-  id         String      @id @default(cuid())
-  senderId   String      @map("sender_id")
-  receiverId String      @map("receiver_id")
-  content    String?
-  image      String?
-  video      String?
-  messageType String     @default("text") @map("message_type") // text, image, video, gift
-  isRead     Boolean     @default(false) @map("is_read")
-  createdAt  DateTime    @default(now()) @map("created_at")
-  updatedAt  DateTime    @updatedAt @map("updated_at")
+  id          String   @id @default(cuid())
+  senderId    String   @map("sender_id")
+  receiverId  String   @map("receiver_id")
+  content     String?
+  image       String?
+  video       String?
+  messageType String   @default("text") @map("message_type") // text, image, video, gift
+  isRead      Boolean  @default(false) @map("is_read")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   sender   User @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
   receiver User @relation("MessageReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
@@ -238,7 +239,7 @@ model LiveHistory {
   title     String?
   startTime DateTime? @map("start_time")
   endTime   DateTime? @map("end_time")
-  duration  Int?      // in seconds
+  duration  Int? // in seconds
   viewers   Int       @default(0)
   earnings  Float     @default(0)
   status    String    @default("ended") // live, ended
@@ -326,7 +327,7 @@ model Gift {
   giftType   String   @map("gift_type")
   giftName   String   @map("gift_name")
   giftImage  String?  @map("gift_image")
-  price      Int      // in diamonds
+  price      Int // in diamonds
   createdAt  DateTime @default(now()) @map("created_at")
 
   sender   User @relation("GiftSender", fields: [senderId], references: [id], onDelete: Cascade)
@@ -340,7 +341,7 @@ model GiftType {
   id        Int      @id @default(autoincrement())
   name      String
   image     String?
-  price     Int      // in diamonds
+  price     Int // in diamonds
   status    Boolean  @default(true)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -354,8 +355,8 @@ model Notification {
   userId    String   @map("user_id")
   title     String
   message   String
-  type      String   // like, comment, follow, gift, live, etc.
-  data      String?  // JSON data for additional info
+  type      String // like, comment, follow, gift, live, etc.
+  data      String? // JSON data for additional info
   isRead    Boolean  @default(false) @map("is_read")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -398,7 +399,7 @@ model PushNotification {
   userId    String?  @map("user_id")
   title     String
   message   String
-  data      String?  // JSON data
+  data      String? // JSON data
   status    String   @default("sent") // sent, failed, pending
   sentAt    DateTime @default(now()) @map("sent_at")
   createdAt DateTime @default(now()) @map("created_at")
@@ -433,7 +434,7 @@ model AgoraToken {
   channel   String
   token     String
   expiresAt DateTime @map("expires_at")
-  type      String   // rtc, rtm
+  type      String // rtc, rtm
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("agora_tokens")
@@ -444,9 +445,9 @@ model CallHistory {
   id         String    @id @default(cuid())
   callerId   String    @map("caller_id")
   receiverId String    @map("receiver_id")
-  type       String    // voice, video
-  status     String    // completed, missed, rejected, failed
-  duration   Int?      // in seconds
+  type       String // voice, video
+  status     String // completed, missed, rejected, failed
+  duration   Int? // in seconds
   startedAt  DateTime? @map("started_at")
   endedAt    DateTime? @map("ended_at")
   createdAt  DateTime  @default(now()) @map("created_at")
@@ -456,15 +457,15 @@ model CallHistory {
 
 // User Sessions (for tracking active sessions)
 model UserSession {
-  id           String    @id @default(cuid())
-  userId       String    @map("user_id")
-  deviceId     String?   @map("device_id")
-  deviceType   String?   @map("device_type") // ios, android, web
-  deviceToken  String?   @map("device_token")
-  isActive     Boolean   @default(true) @map("is_active")
-  lastActivity DateTime  @default(now()) @map("last_activity")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  deviceId     String?  @map("device_id")
+  deviceType   String?  @map("device_type") // ios, android, web
+  deviceToken  String?  @map("device_token")
+  isActive     Boolean  @default(true) @map("is_active")
+  lastActivity DateTime @default(now()) @map("last_activity")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   @@map("user_sessions")
 }
@@ -474,7 +475,7 @@ model AnalyticsEvent {
   id         String   @id @default(cuid())
   userId     String?  @map("user_id")
   event      String
-  properties String?  // JSON data
+  properties String? // JSON data
   timestamp  DateTime @default(now())
   createdAt  DateTime @default(now()) @map("created_at")
 

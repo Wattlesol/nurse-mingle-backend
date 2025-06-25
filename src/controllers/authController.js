@@ -331,8 +331,9 @@ const adminLogin = async (req, res) => {
       });
     }
 
-    // Check password (assuming plain text for now, should be hashed in production)
-    if (admin.password !== password) {
+    // Check password with bcrypt
+    const isPasswordValid = await bcrypt.compare(password, admin.password);
+    if (!isPasswordValid) {
       return res.status(401).json({
         success: false,
         error: 'Invalid credentials'

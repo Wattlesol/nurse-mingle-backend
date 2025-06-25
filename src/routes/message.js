@@ -27,7 +27,7 @@ router.get('/conversations', verifyToken, validatePagination, getConversations);
 // @route   GET /api/messages/conversations/:userId
 // @desc    Get conversation messages with specific user
 // @access  Private
-router.get('/conversations/:userId', verifyToken, validateId, validatePagination, getConversationMessages);
+router.get('/conversations/:userId', verifyToken, validatePagination, getConversationMessages);
 
 // @route   POST /api/messages/send
 // @desc    Send message (HTTP endpoint - Socket.IO preferred for real-time)

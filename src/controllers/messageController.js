@@ -7,49 +7,34 @@ const getConversations = async (req, res) => {
     const skip = (page - 1) * limit;
     const userId = req.user.id;
 
-    // Get latest message for each conversation
+    // Get latest message for each conversation using a simpler approach
     const conversations = await prisma.$queryRaw`
-      SELECT DISTINCT ON (
-        CASE 
-          WHEN sender_id = ${userId} THEN receiver_id 
-          ELSE sender_id 
-        END
-      )
-      m.*,
-      u.id as other_user_id,
-      u.username as other_user_username,
-      u.full_name as other_user_full_name,
-      u.profile_image as other_user_profile_image,
-      u.is_verified as other_user_is_verified,
-      u.is_online as other_user_is_online,
-      u.last_active as other_user_last_active,
-      (
-        SELECT COUNT(*)::int 
-        FROM messages m2 
-        WHERE m2.receiver_id = ${userId} 
-        AND m2.sender_id = (
-          CASE 
-            WHEN m.sender_id = ${userId} THEN m.receiver_id 
-            ELSE m.sender_id 
-          END
-        )
-        AND m2.is_read = false
-      ) as unread_count
+      SELECT DISTINCT ON (other_user_id)
+        m.*,
+        u.id as other_user_id,
+        u.username as other_user_username,
+        u.full_name as other_user_full_name,
+        u.profile_image as other_user_profile_image,
+        u.is_verified as other_user_is_verified,
+        u.is_online as other_user_is_online,
+        u.last_active as other_user_last_active,
+        (
+          SELECT COUNT(*)::int
+          FROM messages m2
+          WHERE m2.receiver_id = ${userId}
+          AND m2.sender_id = u.id
+          AND m2.is_read = false
+        ) as unread_count
       FROM messages m
       JOIN users u ON u.id = (
-        CASE 
-          WHEN m.sender_id = ${userId} THEN m.receiver_id 
-          ELSE m.sender_id 
+        CASE
+          WHEN m.sender_id = ${userId} THEN m.receiver_id
+          ELSE m.sender_id
         END
       )
-      WHERE m.sender_id = ${userId} OR m.receiver_id = ${userId}
-      ORDER BY (
-        CASE 
-          WHEN m.sender_id = ${userId} THEN m.receiver_id 
-          ELSE m.sender_id 
-        END
-      ), m.created_at DESC
-      LIMIT ${limit} OFFSET ${skip}
+      WHERE (m.sender_id = ${userId} OR m.receiver_id = ${userId})
+      ORDER BY other_user_id, m.created_at DESC
+      LIMIT ${parseInt(limit)} OFFSET ${parseInt(skip)}
     `;
 
     const formattedConversations = conversations.map(conv => ({
@@ -102,6 +87,14 @@ const getConversationMessages = async (req, res) => {
     const { page = 1, limit = 50 } = req.query;
     const skip = (page - 1) * limit;
     const userId = req.user.id;
+
+    // Validate otherUserId parameter
+    if (!otherUserId || otherUserId.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        error: 'User ID is required'
+      });
+    }
 
     // Check if other user exists
     const otherUser = await prisma.user.findUnique({

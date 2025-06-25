@@ -58,15 +58,17 @@ async function seedDatabase() {
       { name: 'Education', image: null }
     ];
 
-    for (const interest of interests) {
-      await prisma.interest.upsert({
-        where: { name: interest.name },
-        update: {},
-        create: interest
+    // Check if interests already exist
+    const existingInterests = await prisma.interest.count();
+    if (existingInterests === 0) {
+      await prisma.interest.createMany({
+        data: interests,
+        skipDuplicates: true
       });
+      console.log('✅ Interests created:', interests.length);
+    } else {
+      console.log('✅ Interests already exist, skipping...');
     }
-
-    console.log('✅ Interests created:', interests.length);
 
     // Create default diamond packs
     const diamondPacks = [
@@ -78,15 +80,17 @@ async function seedDatabase() {
       { name: '10000 Diamonds', diamonds: 10000, price: 79.99, currency: 'USD' }
     ];
 
-    for (const pack of diamondPacks) {
-      await prisma.diamondPack.upsert({
-        where: { name: pack.name },
-        update: {},
-        create: pack
+    // Check if diamond packs already exist
+    const existingPacks = await prisma.diamondPack.count();
+    if (existingPacks === 0) {
+      await prisma.diamondPack.createMany({
+        data: diamondPacks,
+        skipDuplicates: true
       });
+      console.log('✅ Diamond packs created:', diamondPacks.length);
+    } else {
+      console.log('✅ Diamond packs already exist, skipping...');
     }
-
-    console.log('✅ Diamond packs created:', diamondPacks.length);
 
     // Create default gift types
     const giftTypes = [
@@ -100,15 +104,17 @@ async function seedDatabase() {
       { name: 'Castle', image: null, price: 5000 }
     ];
 
-    for (const gift of giftTypes) {
-      await prisma.giftType.upsert({
-        where: { name: gift.name },
-        update: {},
-        create: gift
+    // Check if gift types already exist
+    const existingGifts = await prisma.giftType.count();
+    if (existingGifts === 0) {
+      await prisma.giftType.createMany({
+        data: giftTypes,
+        skipDuplicates: true
       });
+      console.log('✅ Gift types created:', giftTypes.length);
+    } else {
+      console.log('✅ Gift types already exist, skipping...');
     }
-
-    console.log('✅ Gift types created:', giftTypes.length);
 
     // Create default app settings
     const appSettings = [

@@ -16,6 +16,19 @@ const { verifyToken } = require('../middleware/auth');
 // @desc    Upload profile image
 // @access  Private
 router.post('/profile-image', verifyToken, (req, res) => {
+  // Check if AWS is properly configured
+  if (!process.env.AWS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID === 'test') {
+    // Mock response for development without real AWS
+    return res.json({
+      success: true,
+      message: 'Profile image uploaded successfully (MOCK)',
+      data: {
+        url: 'https://via.placeholder.com/300x300.png?text=Profile+Image',
+        key: 'profiles/mock-image.png'
+      }
+    });
+  }
+
   profileImageUpload.single('image')(req, res, async (err) => {
     if (err) {
       return res.status(400).json({
