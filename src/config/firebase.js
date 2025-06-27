@@ -4,11 +4,54 @@ const admin = require('firebase-admin');
 const initializeFirebase = () => {
   try {
     if (!admin.apps.length) {
+      // Handle private key formatting for different deployment environments (especially Coolify)
+      let privateKey;
+
+      // Option 1: Try base64 encoded key first (recommended for Coolify)
+      if (process.env.FIREBASE_PRIVATE_KEY_BASE64) {
+        try {
+          privateKey = Buffer.from(process.env.FIREBASE_PRIVATE_KEY_BASE64, 'base64').toString('utf8');
+          console.log('✅ Using base64 encoded Firebase private key');
+        } catch (error) {
+          console.error('❌ Failed to decode base64 private key:', error.message);
+        }
+      }
+
+      // Option 2: Use regular private key with newline handling
+      if (!privateKey && process.env.FIREBASE_PRIVATE_KEY) {
+        privateKey = process.env.FIREBASE_PRIVATE_KEY;
+
+        // Replace literal \n with actual newlines
+        privateKey = privateKey.replace(/\\n/g, '\n');
+
+        // Additional handling for containerized environments like Coolify
+        // Sometimes the key gets double-escaped or malformed
+        if (!privateKey.includes('\n') || privateKey.split('\n').length < 3) {
+          console.log('🔧 Attempting to fix malformed private key for containerized deployment...');
+
+          // Remove any existing formatting
+          let cleanKey = privateKey
+            .replace(/-----BEGIN PRIVATE KEY-----/g, '')
+            .replace(/-----END PRIVATE KEY-----/g, '')
+            .replace(/\s+/g, '');
+
+          // Reconstruct proper PEM format with correct line breaks
+          const lines = [];
+          for (let i = 0; i < cleanKey.length; i += 64) {
+            lines.push(cleanKey.substring(i, i + 64));
+          }
+
+          privateKey = '-----BEGIN PRIVATE KEY-----\n' +
+                      lines.join('\n') +
+                      '\n-----END PRIVATE KEY-----';
+        }
+      }
+
       const serviceAccount = {
         type: 'service_account',
         project_id: process.env.FIREBASE_PROJECT_ID,
         private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
-        private_key: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+        private_key: privateKey,
         client_email: process.env.FIREBASE_CLIENT_EMAIL,
         client_id: process.env.FIREBASE_CLIENT_ID,
         auth_uri: process.env.FIREBASE_AUTH_URI,
@@ -24,6 +67,7 @@ const initializeFirebase = () => {
     }
   } catch (error) {
     console.error('❌ Firebase initialization error:', error.message);
+    console.error('💡 Tip: For Coolify deployment, ensure FIREBASE_PRIVATE_KEY is properly escaped');
     // Don't throw error to allow app to start without Firebase
   }
 };
