@@ -51,7 +51,7 @@ services:
       - /app/node_modules
     networks:
       - orange-network
-    command: npm run dev
+    command: npm start
 
   # Prisma Studio (Optional - for database management)
   prisma-studio:
